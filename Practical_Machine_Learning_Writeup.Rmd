@@ -1,0 +1,45 @@
+---
+title: "Practical-Machine-Learning Writeup"
+author: "TIN Lek"
+date: "Sunday, June 22, 2014"
+output: html_document
+---
+```{r setup, include=FALSE}
+library("knitr", lib.loc="~/R/win-library/3.1")
+opts_chunk$set(cache=TRUE)
+```
+This is the complied HTML report for the assignment writeup assignment for the course "Practical Machine Learning". My name is TIN Lek and I am on the Signaturaue Track.
+
+First, we have to prepare for our Machine Learning analysis by partitioning data and loading packages needed. The training set has 19622 rows, so if we use too many of them for training, it would take a long time. Therefore we give 60% of the samples to the training set and 40% to the testing set.
+The dataset has 159 variables, so it is highly possible that many of them are highly correlated. In addition, as Professor Leek mentioned in the third class, Random Forest can lead to overfitting. We therefore should preprocess the dataset with PCA, producing new PCs with variables that have strong correlation with each other. After further examing the dataset, we would find a problem that we have to remove columns with "N/A", missing data, timestrap data, categorical data and nomial data because PCA only process numeric data. So I manually removed those columns leaving all the other 52 numeric columns in both the training set and testing set. 
+```{r}
+setwd("I:/")
+library("caret", lib.loc="~/R/win-library/3.1")
+library(kernlab) 
+originalData = read.csv("pml-training.csv")
+inTrain <- createDataPartition(y=originalData$classe, p=0.70, list=FALSE)
+training <- originalData[inTrain,]
+testing <- originalData[inTrain,]
+```
+
+
+Furthurmore, it is clear that we apply a classification algorithm because "classe" is a categorical variable.So, first, we try to train the training set with Random Forest with 5 fold cross validation. The script for training, Cross Validation and PCA is as below,
+```{r}
+set.seed(32343)
+model.RF1 <- train(classe ~ ., data = training, method = 'rf', preProcess="pca", verboseIter = TRUE, trControl = trainControl(method="cv", number = 5, allowParallel=TRUE))
+model.RF1
+```
+Making a prediction
+```{r}
+#prediction
+prediction.RF1 <- predict(model.RF1, newdata=testing)
+confusionMatrix(testing$classe, prediction.RF1)
+```
+
+Finally, according to the Confusion Matrix, we can calculate the out-of-sample error = 1- accuracy = 0.
+
+```{r}
+FinalData = read.csv("pml-testing.csv")
+FinalPrediction <- predict(model.RF1, newdata=FinalData)
+FinalPrediction
+```
